@@ -375,16 +375,32 @@
       }
     });
 
-    // OAuth
-    document.getElementById('github-btn').addEventListener('click', async () => {
-      const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-      await sb.auth.signInWithOAuth({ provider: 'github', options: { redirectTo: `${location.origin}/dashboard.html` } });
-    });
+    // OAuth — preflight check before redirecting so we can show a friendly error
+    async function tryOAuth(provider) {
+      hideError();
+      const redirectTo = `${location.origin}${location.pathname.replace('index.html', '')}dashboard.html`;
+      const checkUrl = `${CONFIG.SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(redirectTo)}`;
+      try {
+        const res = await fetch(checkUrl, { redirect: 'manual' });
+        // opaqueredirect (status 0) = Supabase is redirecting us to the OAuth provider = it's working
+        if (res.type === 'opaqueredirect' || res.status === 0) {
+          window.location.href = checkUrl;
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        if (data.error_code === 'validation_failed' || data.msg?.includes('not enabled')) {
+          showError(`${provider === 'github' ? 'GitHub' : 'Google'} OAuth is not enabled yet. Use email/password to sign in, or enable the provider in the Supabase Dashboard → Authentication → Providers.`);
+        } else {
+          showError(data.msg || `${provider} login failed.`);
+        }
+      } catch {
+        // CORS or network error — just try redirecting directly
+        window.location.href = checkUrl;
+      }
+    }
 
-    document.getElementById('google-btn').addEventListener('click', async () => {
-      const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-      await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}/dashboard.html` } });
-    });
+    document.getElementById('github-btn').addEventListener('click', () => tryOAuth('github'));
+    document.getElementById('google-btn').addEventListener('click', () => tryOAuth('google'));
   </script>
 </body>
 </html>
