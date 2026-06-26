@@ -373,7 +373,9 @@
           body: JSON.stringify({ email, password, full_name: name }),
         });
         const result = await res.json();
-        if (result.error) throw new Error(result.error);
+        if (!res.ok || result.error) {
+          throw new Error(result.error || `Register failed (HTTP ${res.status})`);
+        }
 
         // Auto sign-in immediately after account creation
         const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
@@ -382,7 +384,8 @@
 
         window.location.href = 'dashboard.html';
       } catch (err) {
-        showError(extractMsg(err));
+        const msg = err.message || String(err) || 'Sign up failed — unknown error';
+        showError(msg);
         btn.disabled = false;
         btn.innerHTML = 'Create Account';
       }
