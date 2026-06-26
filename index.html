@@ -370,10 +370,7 @@
         const { data, error } = await sb.auth.signUp({
           email,
           password,
-          options: {
-            data: { full_name: name },
-            emailRedirectTo: getRedirectTo(),
-          },
+          options: { data: { full_name: name } },
         });
         if (error) throw error;
 
