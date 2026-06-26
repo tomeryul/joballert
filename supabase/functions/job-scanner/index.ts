@@ -191,6 +191,9 @@ const GH_COMPANIES = [
   { slug: 'walla',          name: 'Walla Communications' },
   { slug: 'ironnet',        name: 'IronNet' },
   { slug: 'coralogix',      name: 'Coralogix' },
+  { slug: 'yotpo',          name: 'Yotpo' },
+  { slug: 'liveperson',     name: 'LivePerson' },
+  { slug: 'optimove',       name: 'Optimove' },
 ];
 
 async function fetchGreenhouse(): Promise<any[]> {
