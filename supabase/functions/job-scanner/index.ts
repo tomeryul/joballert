@@ -52,65 +52,52 @@ function devJob(text: string): boolean {
 
 // ── DRUSHIM RSS ───────────────────────────
 async function fetchDrushim(): Promise<any[]> {
-  const feeds = [
-    'https://www.drushim.co.il/rss/cat4/',
-    'https://www.drushim.co.il/rss/cat4/?q=%D7%9E%D7%A4%D7%AA%D7%97',
-    'https://www.drushim.co.il/rss/cat4/?q=developer',
-    'https://www.drushim.co.il/rss/cat4/?q=software',
-    'https://www.drushim.co.il/rss/cat4/?q=fullstack',
-    'https://www.drushim.co.il/rss/cat4/?q=backend',
-    'https://www.drushim.co.il/rss/cat4/?q=frontend',
-  ];
-
+  // /rss/ is the working endpoint (cat-specific URLs return 404)
+  const feed = 'https://www.drushim.co.il/rss/';
   const seen = new Set<string>();
   const jobs: any[] = [];
 
-  for (const feed of feeds) {
-    try {
-      const res = await fetch(feed, {
-        headers: { 'Accept': 'application/rss+xml,application/xml,text/xml,*/*' },
-        signal: AbortSignal.timeout(12000),
+  try {
+    const res = await fetch(feed, {
+      headers: {
+        'Accept': 'application/rss+xml,application/xml,text/xml,*/*',
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+      },
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return jobs;
+    const xml = await res.text();
+
+    // Extract <item> blocks
+    const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+    for (const [, body] of items) {
+      const title   = (body.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1]?.trim() || '';
+      const company = (body.match(/<company[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/company>/) || [])[1]?.trim() || 'Unknown';
+      const link    = (body.match(/<link>\s*(https?:[^\s<]+)\s*<\/link>/) || [])[1]?.trim() || '';
+      const desc    = (body.match(/<description[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/) || [])[1] || '';
+      const pub     = (body.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1]?.trim() || '';
+
+      if (!link || seen.has(link)) continue;
+      seen.add(link);
+      if (!devJob(title + ' ' + clean(desc))) continue;
+
+      jobs.push({
+        title,
+        company_name: company,
+        location: 'Israel',
+        url: link,
+        description: clean(desc),
+        skills: skills(title + ' ' + clean(desc)),
+        remote_type: remote(clean(desc) + ' ' + title),
+        experience_level: level(title + ' ' + clean(desc)),
+        job_type: 'fulltime',
+        date_posted: pub ? new Date(pub).toISOString() : new Date().toISOString(),
+        source: 'drushim',
+        is_active: true,
       });
-      if (!res.ok) continue;
-      const xml = await res.text();
-
-      // Extract <item> blocks
-      const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
-      for (const [, body] of items) {
-        const rawTitle = (body.match(/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1]?.trim() || '';
-        const link     = (body.match(/<link>\s*(https?:[^\s<]+)\s*<\/link>/) || [])[1]?.trim() || '';
-        const desc     = (body.match(/<description>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/description>/) || [])[1] || '';
-        const pub      = (body.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1]?.trim() || '';
-
-        if (!link || seen.has(link)) continue;
-        seen.add(link);
-
-        // Parse "Title - Company" or "Title | Company"
-        let title = rawTitle, company = '';
-        for (const sep of [' - ', ' – ', ' | ', ' — ']) {
-          const idx = rawTitle.lastIndexOf(sep);
-          if (idx > 2) { title = rawTitle.slice(0, idx).trim(); company = rawTitle.slice(idx + sep.length).trim(); break; }
-        }
-        if (!devJob(title + ' ' + clean(desc))) continue;
-
-        jobs.push({
-          title,
-          company_name: company || 'Unknown',
-          location: 'Israel',
-          url: link,
-          description: clean(desc),
-          skills: skills(title + ' ' + clean(desc)),
-          remote_type: remote(clean(desc) + ' ' + title),
-          experience_level: level(title + ' ' + clean(desc)),
-          job_type: 'fulltime',
-          date_posted: pub ? new Date(pub).toISOString() : new Date().toISOString(),
-          source: 'drushim',
-          is_active: true,
-        });
-      }
-    } catch (e) {
-      console.warn('drushim feed error:', e);
     }
+  } catch (e) {
+    console.warn('drushim feed error:', e);
   }
   return jobs;
 }
@@ -174,19 +161,36 @@ async function fetchLinkedIn(): Promise<any[]> {
 
 // ── GREENHOUSE (Israeli companies) ────────
 const GH_COMPANIES = [
-  { slug: 'monday',    name: 'monday.com' },
-  { slug: 'fiverr',    name: 'Fiverr' },
-  { slug: 'jfrog',     name: 'JFrog' },
-  { slug: 'cyberark',  name: 'CyberArk' },
-  { slug: 'taboola',   name: 'Taboola' },
-  { slug: 'outbrain',  name: 'Outbrain' },
-  { slug: 'snyk',      name: 'Snyk' },
-  { slug: 'payoneer',  name: 'Payoneer' },
-  { slug: 'walkme',    name: 'WalkMe' },
-  { slug: 'bigid',     name: 'BigID' },
-  { slug: 'radware',   name: 'Radware' },
-  { slug: 'imperva',   name: 'Imperva' },
-  { slug: 'amdocs',    name: 'Amdocs' },
+  { slug: 'monday',         name: 'monday.com' },
+  { slug: 'fiverr',         name: 'Fiverr' },
+  { slug: 'jfrog',          name: 'JFrog' },
+  { slug: 'cyberark',       name: 'CyberArk' },
+  { slug: 'taboola',        name: 'Taboola' },
+  { slug: 'outbrain',       name: 'Outbrain' },
+  { slug: 'snyk',           name: 'Snyk' },
+  { slug: 'payoneer',       name: 'Payoneer' },
+  { slug: 'walkme',         name: 'WalkMe' },
+  { slug: 'bigid',          name: 'BigID' },
+  { slug: 'radware',        name: 'Radware' },
+  { slug: 'imperva',        name: 'Imperva' },
+  { slug: 'amdocs',         name: 'Amdocs' },
+  { slug: 'wix',            name: 'Wix' },
+  { slug: 'checkmarx',      name: 'Checkmarx' },
+  { slug: 'sisense',        name: 'Sisense' },
+  { slug: 'papaya',         name: 'Papaya Global' },
+  { slug: 'similarweb',     name: 'SimilarWeb' },
+  { slug: 'gong',           name: 'Gong' },
+  { slug: 'paloaltonetworks', name: 'Palo Alto Networks' },
+  { slug: 'armis',          name: 'Armis' },
+  { slug: 'aquasecurity',   name: 'Aqua Security' },
+  { slug: 'orca',           name: 'Orca Security' },
+  { slug: 'axonius',        name: 'Axonius' },
+  { slug: 'vulcan',         name: 'Vulcan Cyber' },
+  { slug: 'noname',         name: 'Noname Security' },
+  { slug: 'sygnia',         name: 'Sygnia' },
+  { slug: 'walla',          name: 'Walla Communications' },
+  { slug: 'ironnet',        name: 'IronNet' },
+  { slug: 'coralogix',      name: 'Coralogix' },
 ];
 
 async function fetchGreenhouse(): Promise<any[]> {
@@ -224,16 +228,26 @@ async function fetchGreenhouse(): Promise<any[]> {
 
 // ── LEVER (Israeli companies) ─────────────
 const LV_COMPANIES = [
-  { slug: 'riskified',     name: 'Riskified' },
-  { slug: 'lightricks',    name: 'Lightricks' },
-  { slug: 'forter',        name: 'Forter' },
-  { slug: 'next-insurance',name: 'Next Insurance' },
-  { slug: 'pagaya',        name: 'Pagaya' },
-  { slug: 'guesty',        name: 'Guesty' },
-  { slug: 'ironSource',    name: 'ironSource' },
-  { slug: 'varonis',       name: 'Varonis' },
-  { slug: 'lusha',         name: 'Lusha' },
-  { slug: 'salto',         name: 'Salto' },
+  { slug: 'riskified',       name: 'Riskified' },
+  { slug: 'lightricks',      name: 'Lightricks' },
+  { slug: 'forter',          name: 'Forter' },
+  { slug: 'next-insurance',  name: 'Next Insurance' },
+  { slug: 'pagaya',          name: 'Pagaya' },
+  { slug: 'guesty',          name: 'Guesty' },
+  { slug: 'ironSource',      name: 'ironSource' },
+  { slug: 'varonis',         name: 'Varonis' },
+  { slug: 'lusha',           name: 'Lusha' },
+  { slug: 'salto',           name: 'Salto' },
+  { slug: 'appsflyer',       name: 'AppsFlyer' },
+  { slug: 'tipalti',         name: 'Tipalti' },
+  { slug: 'housecallpro',    name: 'Housecall Pro' },
+  { slug: 'kaltura',         name: 'Kaltura' },
+  { slug: 'elementor',       name: 'Elementor' },
+  { slug: 'cloudinary',      name: 'Cloudinary' },
+  { slug: 'sealights',       name: 'SeaLights' },
+  { slug: 'dynamic-yield',   name: 'Dynamic Yield' },
+  { slug: 'cato-networks',   name: 'Cato Networks' },
+  { slug: 'deel',            name: 'Deel' },
 ];
 
 async function fetchLever(): Promise<any[]> {
@@ -269,6 +283,57 @@ async function fetchLever(): Promise<any[]> {
   return jobs;
 }
 
+// ── ASHBY (Israeli companies) ─────────────
+const AB_COMPANIES = [
+  { slug: 'wiz',           name: 'Wiz' },
+  { slug: 'anysphere',     name: 'Cursor' },
+  { slug: 'doit',          name: 'DoiT International' },
+  { slug: 'getsafe',       name: 'GetSafe' },
+  { slug: 'lemonade',      name: 'Lemonade' },
+  { slug: 'fundbox',       name: 'Fundbox' },
+  { slug: 'nayax',         name: 'Nayax' },
+  { slug: 'playtika',      name: 'Playtika' },
+  { slug: 'cellebrite',    name: 'Cellebrite' },
+  { slug: 'ceva',          name: 'CEVA' },
+  { slug: 'trigo',         name: 'Trigo Vision' },
+  { slug: 'innplay',       name: 'Innplay Labs' },
+];
+
+async function fetchAshby(): Promise<any[]> {
+  const jobs: any[] = [];
+  for (const co of AB_COMPANIES) {
+    try {
+      const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${co.slug}?includeCompensation=true`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const j of (data.jobs || [])) {
+        const loc = j.location || j.locationName || '';
+        if (!isIsraeli(loc) && j.isRemote !== true) continue;
+        if (!devJob((j.title || '') + ' ' + (j.descriptionPlain || ''))) continue;
+        jobs.push({
+          title: clean(j.title || ''),
+          company_name: co.name,
+          location: loc || (j.isRemote ? 'Remote' : 'Israel'),
+          url: j.jobUrl || '',
+          description: clean(j.descriptionPlain || j.descriptionHtml || ''),
+          skills: skills((j.title || '') + ' ' + (j.descriptionPlain || '')),
+          remote_type: j.isRemote ? 'remote' : remote(loc),
+          experience_level: level(j.title || ''),
+          job_type: 'fulltime',
+          date_posted: j.publishedDate || new Date().toISOString(),
+          source: 'ashby',
+          source_id: j.id,
+          is_active: true,
+        });
+      }
+      await new Promise(r => setTimeout(r, 300));
+    } catch (e) { console.warn(`ashby ${co.slug}:`, e); }
+  }
+  return jobs;
+}
+
 // ── Main ──────────────────────────────────
 async function runScan() {
   const { data: log } = await supabase
@@ -276,11 +341,12 @@ async function runScan() {
     .insert({ provider: 'all', status: 'running' })
     .select().single();
 
-  const [drushim, linkedin, greenhouse, lever] = await Promise.allSettled([
+  const [drushim, linkedin, greenhouse, lever, ashby] = await Promise.allSettled([
     fetchDrushim(),
     fetchLinkedIn(),
     fetchGreenhouse(),
     fetchLever(),
+    fetchAshby(),
   ]);
 
   const bySource: Record<string, number> = {
@@ -288,6 +354,7 @@ async function runScan() {
     linkedin:   linkedin.status   === 'fulfilled' ? linkedin.value.length   : 0,
     greenhouse: greenhouse.status === 'fulfilled' ? greenhouse.value.length : 0,
     lever:      lever.status      === 'fulfilled' ? lever.value.length      : 0,
+    ashby:      ashby.status      === 'fulfilled' ? ashby.value.length      : 0,
   };
 
   const all = [
@@ -295,6 +362,7 @@ async function runScan() {
     ...(linkedin.status   === 'fulfilled' ? linkedin.value   : []),
     ...(greenhouse.status === 'fulfilled' ? greenhouse.value : []),
     ...(lever.status      === 'fulfilled' ? lever.value      : []),
+    ...(ashby.status      === 'fulfilled' ? ashby.value      : []),
   ].filter(j => j.title && j.url);
 
   let inserted = 0;
