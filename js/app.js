@@ -71,21 +71,21 @@ const App = {
 
   async _runScan() {
     if (!Auth.isLoggedIn) return;
-    const profile = Auth.getEffectiveProfile();
-    const query = {
-      keywords: profile.preferred_titles?.join(' ') || 'software developer engineer',
-      remote: profile.remote_preference,
-      location: profile.location || 'Israel',
-    };
-
-    const enabledProviders = Auth.settings?.providers_enabled || [];
-    if (enabledProviders.length) providerRegistry.setEnabled(enabledProviders);
-
     try {
-      const result = await providerRegistry.scan(query);
+      const session = await DB.getSession();
+      const res = await fetch(`${CONFIG.SUPABASE_URL}/functions/v1/job-scanner`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`,
+        },
+      });
+      const result = await res.json();
       Utils.store.set('last_scan_ts', Date.now());
       Utils.store.set('last_scan_result', result);
       Utils.emit('scan:complete', result);
+      return result;
     } catch (err) {
       console.error('Scan error:', err);
     }
