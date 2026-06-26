@@ -100,6 +100,12 @@
           </div>
 
           <div class="form-group">
+            <label class="form-label">Preferred Cities in Israel</label>
+            <div class="text-muted" style="font-size:.78rem;margin-bottom:.5rem">Select the cities you want to work in. Leave all unselected to show jobs from all of Israel.</div>
+            <div class="flex flex-wrap gap-2" id="city-picker"></div>
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Target Roles (comma-separated)</label>
             <input type="text" class="form-control" id="pf-titles" placeholder="Software Developer, Full Stack Developer, Backend Developer">
           </div>
@@ -260,6 +266,8 @@
 <script src="js/providers/greenhouse.js"></script>
 <script src="js/providers/lever.js"></script>
 <script src="js/providers/ashby.js"></script>
+<script src="js/providers/linkedin.js"></script>
+<script src="js/providers/drushim.js"></script>
 <script src="js/providers/wellfound.js"></script>
 <script src="js/providers/provider-registry.js"></script>
 <script src="js/app.js"></script>
@@ -273,6 +281,15 @@ const COMMON_SKILLS = ['JavaScript','TypeScript','Python','Java','C++','C#','Rub
   'HTML','CSS','Sass','Tailwind','GraphQL','REST','Git','Linux','SQL'];
 
 let userSkills = [];
+
+function renderCityPicker(savedCities) {
+  const container = document.getElementById('city-picker');
+  container.innerHTML = CONFIG.ISRAEL_CITIES.map(city => `
+    <label style="display:inline-flex;align-items:center;gap:.375rem;cursor:pointer;padding:.375rem .75rem;border-radius:8px;border:1px solid var(--glass-border);background:var(--bg-input);font-size:.8rem;transition:all .2s">
+      <input type="checkbox" value="${city}" ${savedCities.includes(city) ? 'checked' : ''} style="accent-color:var(--accent-primary)">
+      ${city}
+    </label>`).join('');
+}
 
 (async () => {
   await App.init();
@@ -290,6 +307,9 @@ let userSkills = [];
   document.getElementById('pf-linkedin').value = Auth.profile?.linkedin_url || '';
   document.getElementById('pf-titles').value = (profile.preferred_titles || []).join(', ');
   document.getElementById('pf-salary-min').value = profile.salary_min || '';
+
+  // Preferred cities
+  renderCityPicker(profile.preferred_locations || []);
 
   // Skills
   userSkills = [...(profile.skills || CONFIG.DEFAULT_PROFILE.skills)];
@@ -375,6 +395,7 @@ document.getElementById('save-all-btn').addEventListener('click', async () => {
   try {
     const expLevels = [...document.querySelectorAll('#exp-levels-picker input:checked')].map(c => c.value);
     const providers = [...document.querySelectorAll('[data-provider].active')].map(c => c.dataset.provider);
+    const preferredCities = [...document.querySelectorAll('#city-picker input:checked')].map(c => c.value);
 
     await Promise.all([
       Auth.updateProfile({
@@ -388,6 +409,7 @@ document.getElementById('save-all-btn').addEventListener('click', async () => {
         salary_min: parseInt(document.getElementById('pf-salary-min').value) || null,
         skills: userSkills,
         experience_levels: expLevels,
+        preferred_locations: preferredCities,
       }),
       Auth.updateSettings({
         push_enabled: document.getElementById('notif-push').checked,

@@ -110,15 +110,17 @@ const DB = {
   },
 
   // ── Jobs ─────────────────────────────────
-  async getJobs({ search, remote, source, experience, sort = 'date_posted', page = 1, limit = CONFIG.JOBS_PER_PAGE } = {}) {
-    const IL_KEYWORDS = ['Israel', 'Tel Aviv', 'Jerusalem', 'Haifa', 'Herzliya', 'Ramat Gan',
-      'Beer Sheva', 'Petah Tikva', 'Raanana', 'Rehovot', 'Netanya', 'Bnei Brak', 'Holon', 'Modiin'];
+  async getJobs({ search, remote, source, experience, cities = [], sort = 'date_posted', page = 1, limit = CONFIG.JOBS_PER_PAGE } = {}) {
+    // Show only Israeli jobs or remote jobs
+    const locationFilter = cities && cities.length > 0
+      ? cities.map(c => `location.ilike.%${c}%`).join(',')
+      : ['Israel', ...CONFIG.ISRAEL_CITIES].map(c => `location.ilike.%${c}%`).join(',');
 
     let query = getSupabase()
       .from('jobs')
       .select('*', { count: 'exact' })
       .eq('is_active', true)
-      .or(`remote_type.eq.remote,${IL_KEYWORDS.map(c => `location.ilike.%${c}%`).join(',')}`);
+      .or(`remote_type.eq.remote,${locationFilter}`);
 
     if (search) {
       query = query.textSearch('search_vector', search, { type: 'websearch' });

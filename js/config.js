@@ -29,7 +29,7 @@ const CONFIG = {
     preferred_titles: ['Software Developer', 'Full Stack Developer', 'Backend Developer', 'Frontend Developer', 'Junior Software Engineer'],
     experience_levels: ['junior', 'mid'],
     remote_preference: 'any',
-    location: 'Israel',
+    preferred_locations: [],
   },
 
   // AI Matching weights (out of 100)
@@ -51,32 +51,21 @@ const CONFIG = {
   // Minimum match score to show in Recommended
   MIN_RECOMMENDED_SCORE: 60,
 
-  // Job providers
+  // Job providers (only implemented ones)
   PROVIDERS: [
-    { id: 'linkedin',    name: 'LinkedIn',     icon: '💼', color: '#0077B5' },
-    { id: 'indeed',      name: 'Indeed',       icon: '🔵', color: '#2164F3' },
-    { id: 'glassdoor',   name: 'Glassdoor',    icon: '🟢', color: '#0CAA41' },
-    { id: 'greenhouse',  name: 'Greenhouse',   icon: '🌿', color: '#24A147' },
-    { id: 'lever',       name: 'Lever',        icon: '⚙️', color: '#1EBBD7' },
-    { id: 'workday',     name: 'Workday',      icon: '🔶', color: '#F36F21' },
-    { id: 'comeet',      name: 'Comeet',       icon: '🟣', color: '#6B48C8' },
-    { id: 'ashby',       name: 'Ashby',        icon: '⚡', color: '#5865F2' },
-    { id: 'wellfound',   name: 'Wellfound',    icon: '🚀', color: '#FF6B6B' },
-    { id: 'ziprecruiter',name: 'ZipRecruiter', icon: '📮', color: '#FF6900' },
-    { id: 'monster',     name: 'Monster',      icon: '👾', color: '#6E0F89' },
-    { id: 'google',      name: 'Google Jobs',  icon: '🔍', color: '#4285F4' },
-    { id: 'startup',     name: 'Startup.jobs', icon: '🌱', color: '#00B47B' },
-    { id: 'vercel',      name: 'Vercel',       icon: '▲', color: '#FFFFFF' },
-    { id: 'supabase',    name: 'Supabase',     icon: '⚡', color: '#3ECF8E' },
-    { id: 'stripe',      name: 'Stripe',       icon: '💳', color: '#635BFF' },
-    { id: 'github',      name: 'GitHub',       icon: '🐙', color: '#E6EDF3' },
-    { id: 'meta',        name: 'Meta',         icon: '🔷', color: '#1877F2' },
-    { id: 'figma',       name: 'Figma',        icon: '🎨', color: '#F24E1E' },
-    { id: 'linear',      name: 'Linear',       icon: '◻', color: '#5E6AD2' },
-    { id: 'atlassian',   name: 'Atlassian',    icon: '🔷', color: '#0052CC' },
-    { id: 'shopify',     name: 'Shopify',      icon: '🛍', color: '#96BF48' },
-    { id: 'notion',      name: 'Notion',       icon: '📝', color: '#FFFFFF' },
-    { id: 'cloudflare',  name: 'Cloudflare',   icon: '☁️', color: '#F48120' },
+    { id: 'linkedin',   name: 'LinkedIn',   icon: '💼', color: '#0077B5' },
+    { id: 'drushim',    name: 'דרושים',     icon: '🇮🇱', color: '#0038B8' },
+    { id: 'greenhouse', name: 'Greenhouse', icon: '🌿', color: '#24A147' },
+    { id: 'lever',      name: 'Lever',      icon: '⚙️', color: '#1EBBD7' },
+    { id: 'wellfound',  name: 'Wellfound',  icon: '🚀', color: '#FF6B6B' },
+    { id: 'ashby',      name: 'Ashby',      icon: '⚡', color: '#5865F2' },
+  ],
+
+  // Israeli cities for location preference
+  ISRAEL_CITIES: [
+    'Tel Aviv', 'Herzliya', 'Ramat Gan', 'Petah Tikva', 'Bnei Brak',
+    'Jerusalem', 'Haifa', 'Beer Sheva', 'Netanya', 'Rehovot',
+    'Raanana', 'Modiin', 'Holon', 'Ashdod', 'Eilat',
   ],
 
   // Experience level display labels

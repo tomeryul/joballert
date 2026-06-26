@@ -58,7 +58,7 @@ class ProviderRegistry {
         const jobs = await provider.fetchJobs(query);
         const normalized = jobs
           .filter(j => j.url && j.title && j.company_name)
-          .filter(j => provider._isIsraeliOrRemote(j));
+          .filter(j => provider.isIsraelOnly || provider._isIsraeliOrRemote(j));
 
         results.byProvider[provider.id] = { found: normalized.length, new: 0, errors: 0 };
         results.totalFound += normalized.length;
@@ -92,6 +92,8 @@ const providerRegistry = new ProviderRegistry();
 
 // Register all providers
 providerRegistry
+  .register(new LinkedInProvider())
+  .register(new DrushimProvider())
   .register(new GreenhouseProvider())
   .register(new LeverProvider())
   .register(new AshbyProvider())

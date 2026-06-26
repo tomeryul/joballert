@@ -9,6 +9,7 @@ class BaseProvider {
     this.name = config.name || 'Unknown';
     this.enabled = config.enabled !== false;
     this.rateLimit = config.rateLimit || 1000; // ms between requests
+    this.isIsraelOnly = config.isIsraelOnly || false;
     this._lastFetch = 0;
   }
 

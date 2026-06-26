@@ -104,6 +104,8 @@
 <script src="js/providers/greenhouse.js"></script>
 <script src="js/providers/lever.js"></script>
 <script src="js/providers/ashby.js"></script>
+<script src="js/providers/linkedin.js"></script>
+<script src="js/providers/drushim.js"></script>
 <script src="js/providers/wellfound.js"></script>
 <script src="js/providers/provider-registry.js"></script>
 <script src="js/app.js"></script>
@@ -138,7 +140,7 @@ async function loadRecommended() {
   const profile = Auth.getEffectiveProfile();
   const remote = document.getElementById('rec-remote')?.value || 'any';
 
-  const { data: jobs } = await DB.getJobs({ remote: remote !== 'any' ? remote : undefined, limit: 100 });
+  const { data: jobs } = await DB.getJobs({ remote: remote !== 'any' ? remote : undefined, limit: 100, cities: Auth.getEffectiveProfile().preferred_locations || [] });
 
   const scored = (jobs || [])
     .map(job => {
