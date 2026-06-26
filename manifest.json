@@ -1,0 +1,37 @@
+{
+  "name": "JobAlert — AI Job Hunting",
+  "short_name": "JobAlert",
+  "description": "AI-powered job hunting assistant for software engineers",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard.html",
+      "description": "View your job hunting dashboard"
+    },
+    {
+      "name": "Browse Jobs",
+      "url": "/jobs.html",
+      "description": "Browse all available jobs"
+    },
+    {
+      "name": "Recommended",
+      "url": "/recommended.html",
+      "description": "View AI-recommended jobs"
+    }
+  ]
+}

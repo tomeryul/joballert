@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — JobAlert</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .recent-jobs-list { display: flex; flex-direction: column; gap: 0; }
+    .recent-job-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--glass-border);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+    .recent-job-row:last-child { border-bottom: none; }
+    .recent-job-row:hover { background: var(--bg-card-hover); }
+    .recent-job-row-info { flex: 1; min-width: 0; }
+    .recent-job-row-title { font-size: 0.875rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .recent-job-row-company { font-size: 0.78rem; color: var(--text-muted); }
+    .activity-list { padding: 0; }
+    .activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.875rem;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent-primary); flex-shrink: 0; margin-top: 5px;
+    }
+    .pipeline-bar {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    .pipeline-stage {
+      flex: 1; min-width: 100px;
+      padding: 0.75rem;
+      background: var(--bg-input);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      text-align: center;
+    }
+    .pipeline-stage-count { font-size: 1.5rem; font-weight: 700; }
+    .pipeline-stage-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; }
+    .scan-log-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.625rem 1.25rem;
+      border-bottom: 1px solid var(--glass-border);
+      font-size: 0.8rem;
+    }
+    .scan-log-row:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+<div class="app-layout" id="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div id="topbar-mount"></div>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">Welcome back! Here's your job hunting overview.</p>
+        </div>
+        <div class="flex gap-3">
+          <button class="btn btn-secondary" id="scan-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            Scan Now
+          </button>
+          <a href="jobs.html" class="btn btn-primary">Browse Jobs</a>
+        </div>
+      </div>
+
+      <!-- Scan Status -->
+      <div class="scan-status" id="scan-status" style="display:none">
+        <span class="scan-dot running" id="scan-dot"></span>
+        <span id="scan-status-text">Scanning job providers…</span>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+          </div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-label">Total Jobs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <div class="stat-value" id="stat-recommended">—</div>
+          <div class="stat-label">Strong Matches (60%+)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-warning">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+          </div>
+          <div class="stat-value" id="stat-saved">—</div>
+          <div class="stat-label">Saved Jobs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon stat-icon-info">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div class="stat-value" id="stat-applied">—</div>
+          <div class="stat-label">Applications</div>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:1.5rem">
+        <!-- Recent Jobs -->
+        <div class="card">
+          <div class="card-header">
+            <h3>Latest Jobs</h3>
+            <a href="jobs.html" class="btn btn-ghost btn-sm">View All</a>
+          </div>
+          <div class="recent-jobs-list" id="recent-jobs-list">
+            <div class="loading-overlay"><div class="loading-spinner"></div></div>
+          </div>
+        </div>
+
+        <!-- Application Pipeline -->
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-header">
+              <h3>Application Pipeline</h3>
+              <a href="applied.html" class="btn btn-ghost btn-sm">Manage</a>
+            </div>
+            <div class="card-body">
+              <div class="pipeline-bar" id="pipeline-bar">
+                <div class="loading-overlay" style="min-height:80px"><div class="loading-spinner"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scan Logs -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Scan History</h3>
+              <span class="text-muted text-sm" id="last-scan-time">Never</span>
+            </div>
+            <div class="scan-log-rows" id="scan-log-rows">
+              <div class="loading-overlay" style="min-height:60px"><div class="loading-spinner"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Matches -->
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-header">
+          <h3>Top AI Matches</h3>
+          <a href="recommended.html" class="btn btn-ghost btn-sm">See All</a>
+        </div>
+        <div style="padding:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem" id="top-matches">
+          <div class="loading-overlay"><div class="loading-spinner"></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/ai-matcher.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/jobs.js"></script>
+<script src="js/providers/base-provider.js"></script>
+<script src="js/providers/greenhouse.js"></script>
+<script src="js/providers/lever.js"></script>
+<script src="js/providers/ashby.js"></script>
+<script src="js/providers/wellfound.js"></script>
+<script src="js/providers/provider-registry.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.getElementById('sidebar-mount').innerHTML = buildSidebar('dashboard');
+document.getElementById('topbar-mount').innerHTML = buildTopbar();
+
+(async () => {
+  await App.init();
+  if (!Auth.requireAuth()) return;
+
+  const userId = Auth.user.id;
+  const profile = Auth.getEffectiveProfile();
+
+  // Load dashboard data
+  await Promise.all([
+    loadStats(),
+    loadRecentJobs(),
+    loadPipeline(),
+    loadScanLogs(),
+  ]);
+
+  async function loadStats() {
+    const [jobsRes, userJobsRes] = await Promise.all([
+      DB.getJobs({ limit: 1 }),
+      DB.getUserJobs(userId),
+    ]);
+
+    const total = jobsRes.count || 0;
+    const userJobs = userJobsRes.data || [];
+    const saved = userJobs.filter(uj => uj.status === 'saved').length;
+    const applied = userJobs.filter(uj => ['applied','interviewing','offered'].includes(uj.status)).length;
+
+    // Count recommended (score >= 60)
+    const allJobsRes = await DB.getJobs({ limit: 50 });
+    const allJobs = allJobsRes.data || [];
+    let recommended = 0;
+    allJobs.forEach(job => {
+      const m = AIMatcher.match(job, profile);
+      if (m.score >= CONFIG.MIN_RECOMMENDED_SCORE) recommended++;
+    });
+
+    document.getElementById('stat-total').textContent = Utils.formatNumber(total);
+    document.getElementById('stat-recommended').textContent = recommended;
+    document.getElementById('stat-saved').textContent = saved;
+    document.getElementById('stat-applied').textContent = applied;
+  }
+
+  async function loadRecentJobs() {
+    const { data: jobs } = await DB.getJobs({ limit: 8 });
+    const container = document.getElementById('recent-jobs-list');
+    if (!jobs?.length) {
+      container.innerHTML = '<div class="empty-state" style="padding:2rem"><p>No jobs yet. Run a scan to import jobs.</p></div>';
+      return;
+    }
+
+    await JobManager.init();
+    container.innerHTML = jobs.map(job => {
+      const match = AIMatcher.match(job, profile);
+      const logo = `<div class="company-logo" style="width:36px;height:36px;font-size:.8rem">
+        <img src="https://logo.clearbit.com/${Utils.escapeHtml(job.company_name?.toLowerCase().replace(/\s+/g, '') + '.com')}"
+          onerror="this.style.display='none';this.parentNode.textContent='${Utils.escapeHtml(Utils.getCompanyInitials(job.company_name))}'">
+      </div>`;
+      return `
+        <div class="recent-job-row" onclick="window.open('${Utils.escapeHtml(job.url)}','_blank')">
+          ${logo}
+          <div class="recent-job-row-info">
+            <div class="recent-job-row-title">${Utils.escapeHtml(job.title)}</div>
+            <div class="recent-job-row-company">${Utils.escapeHtml(job.company_name)} · ${Utils.timeAgo(job.date_posted || job.created_at)}</div>
+          </div>
+          ${Utils.getScoreRing(match.score, 36)}
+        </div>`;
+    }).join('');
+  }
+
+  async function loadPipeline() {
+    const { data: userJobs } = await DB.getUserJobs(userId);
+    const stages = [
+      { key: 'saved',        label: 'Saved',        color: '#fbbf24' },
+      { key: 'applied',      label: 'Applied',      color: '#34d399' },
+      { key: 'interviewing', label: 'Interviewing', color: '#60a5fa' },
+      { key: 'offered',      label: 'Offered',      color: '#818cf8' },
+      { key: 'rejected',     label: 'Rejected',     color: '#f87171' },
+    ];
+    const counts = {};
+    (userJobs || []).forEach(uj => { counts[uj.status] = (counts[uj.status] || 0) + 1; });
+
+    document.getElementById('pipeline-bar').innerHTML = stages.map(s => `
+      <div class="pipeline-stage">
+        <div class="pipeline-stage-count" style="color:${s.color}">${counts[s.key] || 0}</div>
+        <div class="pipeline-stage-label">${s.label}</div>
+      </div>`).join('');
+  }
+
+  async function loadScanLogs() {
+    const { data: logs } = await DB.getScanLogs(5);
+    const lastScan = Utils.store.get('last_scan_ts');
+    document.getElementById('last-scan-time').textContent = lastScan ? Utils.timeAgo(new Date(lastScan)) : 'Never';
+
+    document.getElementById('scan-log-rows').innerHTML = logs?.length
+      ? logs.map(log => `
+          <div class="scan-log-row">
+            <span>${Utils.capitalize(log.provider)}</span>
+            <span class="badge ${log.status === 'success' ? 'badge-success' : log.status === 'failed' ? 'badge-danger' : 'badge-warning'}">${log.status}</span>
+            <span class="text-muted">${log.jobs_new} new</span>
+            <span class="text-muted">${Utils.timeAgo(log.started_at)}</span>
+          </div>`).join('')
+      : '<div style="padding:1rem;text-align:center;color:var(--text-muted);font-size:.85rem">No scan history yet</div>';
+  }
+
+  async function loadTopMatches() {
+    const { data: jobs } = await DB.getJobs({ limit: 30 });
+    const matches = (jobs || [])
+      .map(j => ({ ...j, _score: AIMatcher.match(j, profile).score }))
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 6);
+
+    await JobManager.init();
+    const container = document.getElementById('top-matches');
+    if (!matches.length) {
+      container.innerHTML = '<div class="empty-state" style="padding:2rem"><p>No jobs found yet.</p></div>';
+      return;
+    }
+
+    container.innerHTML = matches.map(job => JobManager.renderJobCard(job)).join('');
+    JobManager.initCardActions(container);
+  }
+
+  loadTopMatches();
+
+  // Scan button
+  document.getElementById('scan-btn').addEventListener('click', async () => {
+    const status = document.getElementById('scan-status');
+    const statusText = document.getElementById('scan-status-text');
+    status.style.display = 'flex';
+    statusText.textContent = 'Scanning job providers…';
+
+    Utils.on('scan:provider_start', ({ provider }) => {
+      statusText.textContent = `Scanning ${provider}…`;
+    });
+
+    try {
+      const result = await providerRegistry.scan({
+        keywords: profile.preferred_titles?.join(' ') || 'software developer',
+        remote: profile.remote_preference,
+      }, ({ provider, status: s, count }) => {
+        statusText.textContent = s === 'done' ? `${provider}: found ${count} jobs` : `Scanning ${provider}…`;
+      });
+
+      status.style.display = 'none';
+      document.getElementById('scan-dot').className = 'scan-dot';
+      Toasts.success('Scan complete!', `Found ${result.totalFound} jobs, ${result.newJobs} new`);
+      Utils.store.set('last_scan_ts', Date.now());
+
+      // Reload data
+      await Promise.all([loadStats(), loadRecentJobs(), loadScanLogs(), loadTopMatches()]);
+    } catch (err) {
+      status.style.display = 'none';
+      Toasts.error('Scan failed', err.message);
+    }
+  });
+})();
+</script>
+</body>
+</html>

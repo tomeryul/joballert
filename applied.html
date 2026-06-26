@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Applications — JobAlert</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div id="topbar-mount"></div>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Applications</h1>
+          <p class="page-subtitle">Track every stage of your job search pipeline.</p>
+        </div>
+        <div class="flex gap-2 items-center">
+          <span class="badge badge-primary" id="total-apps">0 total</span>
+          <a href="jobs.html" class="btn btn-primary">Find More Jobs</a>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="filter-bar" style="gap:.5rem">
+        <button class="score-btn active" data-status="all" style="border-radius:8px;padding:.4rem .875rem;font-size:.8rem;border:1px solid var(--glass-border);background:var(--accent-primary);color:white;cursor:pointer;font-weight:600">All</button>
+        <button class="score-btn" data-status="saved" style="border-radius:8px;padding:.4rem .875rem;font-size:.8rem;border:1px solid var(--glass-border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;font-weight:600;transition:all .2s">Saved</button>
+        <button class="score-btn" data-status="applied" style="border-radius:8px;padding:.4rem .875rem;font-size:.8rem;border:1px solid var(--glass-border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;font-weight:600;transition:all .2s">Applied</button>
+        <button class="score-btn" data-status="interviewing" style="border-radius:8px;padding:.4rem .875rem;font-size:.8rem;border:1px solid var(--glass-border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;font-weight:600;transition:all .2s">Interviewing</button>
+        <button class="score-btn" data-status="offered" style="border-radius:8px;padding:.4rem .875rem;font-size:.8rem;border:1px solid var(--glass-border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;font-weight:600;transition:all .2s">Offered</button>
+        <button class="score-btn" data-status="rejected" style="border-radius:8px;padding:.4rem .875rem;font-size:.8rem;border:1px solid var(--glass-border);background:var(--bg-card);color:var(--text-secondary);cursor:pointer;font-weight:600;transition:all .2s">Rejected</button>
+      </div>
+
+      <!-- Kanban board -->
+      <div class="kanban-board" id="kanban-board">
+        <div class="loading-overlay" style="width:100%">
+          <div class="loading-spinner loading-spinner-lg"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/ai-matcher.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/jobs.js"></script>
+<script src="js/providers/base-provider.js"></script>
+<script src="js/providers/greenhouse.js"></script>
+<script src="js/providers/lever.js"></script>
+<script src="js/providers/ashby.js"></script>
+<script src="js/providers/wellfound.js"></script>
+<script src="js/providers/provider-registry.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.getElementById('sidebar-mount').innerHTML = buildSidebar('applied');
+document.getElementById('topbar-mount').innerHTML = buildTopbar();
+
+const STAGES = [
+  { key: 'saved',        label: 'Saved',        color: '#fbbf24' },
+  { key: 'applied',      label: 'Applied',      color: '#34d399' },
+  { key: 'interviewing', label: 'Interviewing', color: '#60a5fa' },
+  { key: 'offered',      label: 'Offered',      color: '#818cf8' },
+  { key: 'rejected',     label: 'Rejected',     color: '#f87171' },
+  { key: 'withdrawn',    label: 'Withdrawn',    color: '#94a3b8' },
+];
+
+let allUserJobs = [];
+let currentFilter = 'all';
+
+(async () => {
+  await App.init();
+  if (!Auth.requireAuth()) return;
+  await loadApplications();
+
+  document.querySelectorAll('[data-status]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-status]').forEach(b => {
+        b.style.background = 'var(--bg-card)';
+        b.style.color = 'var(--text-secondary)';
+        b.style.borderColor = 'var(--glass-border)';
+      });
+      btn.style.background = 'var(--accent-primary)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--accent-primary)';
+      currentFilter = btn.dataset.status;
+      renderKanban(allUserJobs, currentFilter);
+    });
+  });
+})();
+
+async function loadApplications() {
+  const { data, error } = await DB.getUserJobs(Auth.user.id);
+  if (error) { Toasts.error('Error', error.message); return; }
+  allUserJobs = data || [];
+  document.getElementById('total-apps').textContent = `${allUserJobs.length} total`;
+  renderKanban(allUserJobs, 'all');
+}
+
+function renderKanban(userJobs, filter) {
+  const board = document.getElementById('kanban-board');
+  const stages = filter === 'all' ? STAGES : STAGES.filter(s => s.key === filter);
+  const grouped = {};
+  userJobs.forEach(uj => { (grouped[uj.status] = grouped[uj.status] || []).push(uj); });
+
+  board.innerHTML = stages.map(stage => {
+    const items = grouped[stage.key] || [];
+    return `
+      <div class="kanban-column">
+        <div class="kanban-header">
+          <div class="kanban-title">
+            <span style="width:10px;height:10px;border-radius:50%;background:${stage.color};display:inline-block;flex-shrink:0"></span>
+            ${stage.label}
+          </div>
+          <span class="kanban-count">${items.length}</span>
+        </div>
+        <div class="kanban-cards">
+          ${items.length ? items.map(uj => renderKanbanCard(uj, stage.color)).join('') : `
+            <div style="padding:1.5rem;text-align:center;color:var(--text-muted);font-size:.8rem">No ${stage.label.toLowerCase()} jobs</div>`}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Status change dropdowns
+  board.querySelectorAll('[data-status-select]').forEach(select => {
+    select.addEventListener('change', async (e) => {
+      const jobId = e.target.dataset.jobId;
+      const newStatus = e.target.value;
+      await JobManager.updateStatus(jobId, newStatus);
+      Toasts.success('Updated', `Status changed to ${newStatus}`);
+      await loadApplications();
+    });
+  });
+}
+
+function renderKanbanCard(uj, color) {
+  const job = uj.jobs;
+  if (!job) return '';
+  const score = uj.match_score;
+  const statusOpts = STAGES.map(s =>
+    `<option value="${s.key}" ${uj.status === s.key ? 'selected' : ''}>${s.label}</option>`
+  ).join('');
+
+  return `
+    <div class="kanban-card">
+      <div class="kanban-card-title">${Utils.escapeHtml(job.title)}</div>
+      <div class="kanban-card-company">${Utils.escapeHtml(job.company_name)}</div>
+      <div class="kanban-card-meta" style="display:flex;justify-content:space-between;align-items:center">
+        <span>${score ? `${score}% match` : ''}</span>
+        <span>${Utils.timeAgo(uj.applied_at || uj.created_at)}</span>
+      </div>
+      <div style="margin-top:.625rem;display:flex;gap:.5rem;align-items:center">
+        <select class="form-control" data-status-select data-job-id="${job.id}"
+          style="font-size:.75rem;padding:.3rem .625rem;flex:1">
+          ${statusOpts}
+        </select>
+        <a href="${Utils.escapeHtml(job.url)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm" title="Open">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </a>
+      </div>
+      ${uj.notes ? `<div style="margin-top:.5rem;font-size:.75rem;color:var(--text-muted);padding:.5rem;background:var(--bg-input);border-radius:6px">${Utils.escapeHtml(uj.notes)}</div>` : ''}
+    </div>`;
+}
+</script>
+</body>
+</html>

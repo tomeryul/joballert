@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Companies — JobAlert</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .companies-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    @media(max-width:600px) { .companies-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div id="topbar-mount"></div>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Companies</h1>
+          <p class="page-subtitle" id="co-count">Loading…</p>
+        </div>
+      </div>
+
+      <div class="filter-bar" style="margin-bottom:1.5rem">
+        <input type="text" id="co-search" placeholder="Search companies…">
+        <select id="co-industry">
+          <option value="all">All Industries</option>
+          <option value="Technology">Technology</option>
+          <option value="Fintech">Fintech</option>
+          <option value="E-commerce">E-commerce</option>
+          <option value="Developer Tools">Developer Tools</option>
+          <option value="Design Tools">Design Tools</option>
+          <option value="Infrastructure">Infrastructure</option>
+        </select>
+        <span class="filter-count" id="co-filter-count"></span>
+      </div>
+
+      <div class="companies-grid" id="companies-grid">
+        <div class="loading-overlay" style="grid-column:1/-1">
+          <div class="loading-spinner loading-spinner-lg"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/ai-matcher.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/jobs.js"></script>
+<script src="js/providers/base-provider.js"></script>
+<script src="js/providers/greenhouse.js"></script>
+<script src="js/providers/lever.js"></script>
+<script src="js/providers/ashby.js"></script>
+<script src="js/providers/wellfound.js"></script>
+<script src="js/providers/provider-registry.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.getElementById('sidebar-mount').innerHTML = buildSidebar('companies');
+document.getElementById('topbar-mount').innerHTML = buildTopbar();
+
+let allCompanies = [];
+let jobsByCompany = {};
+
+(async () => {
+  await App.init();
+  if (!Auth.requireAuth()) return;
+
+  const [coRes, jobsRes] = await Promise.all([
+    DB.getCompanies(),
+    DB.getJobs({ limit: 200 }),
+  ]);
+
+  allCompanies = coRes.data || [];
+  const jobs = jobsRes.data || [];
+
+  // Count jobs per company
+  jobs.forEach(j => {
+    const k = j.company_name;
+    jobsByCompany[k] = (jobsByCompany[k] || 0) + 1;
+  });
+
+  document.getElementById('co-count').textContent = `${allCompanies.length} companies tracked`;
+  renderCompanies(allCompanies);
+
+  const debouncedFilter = Utils.debounce(filterCompanies, 250);
+  document.getElementById('co-search').addEventListener('input', debouncedFilter);
+  document.getElementById('co-industry').addEventListener('change', filterCompanies);
+})();
+
+function filterCompanies() {
+  const q = document.getElementById('co-search').value.toLowerCase();
+  const ind = document.getElementById('co-industry').value;
+  const filtered = allCompanies.filter(c => {
+    const matchQ = !q || c.name.toLowerCase().includes(q) || (c.industry || '').toLowerCase().includes(q);
+    const matchInd = ind === 'all' || c.industry === ind;
+    return matchQ && matchInd;
+  });
+  document.getElementById('co-filter-count').textContent = `${filtered.length} companies`;
+  renderCompanies(filtered);
+}
+
+function renderCompanies(companies) {
+  const grid = document.getElementById('companies-grid');
+  if (!companies.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><h3>No companies found</h3><p>Try adjusting your filters.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = companies.map(co => {
+    const domain = co.website?.replace(/https?:\/\/(www\.)?/, '').split('/')[0] || `${co.name.toLowerCase().replace(/\s/g,'')}.com`;
+    const jobCount = jobsByCompany[co.name] || 0;
+
+    return `
+      <div class="company-card">
+        <div class="company-card-header">
+          <div class="company-logo-lg">
+            <img src="https://logo.clearbit.com/${Utils.escapeHtml(domain)}" alt="${Utils.escapeHtml(co.name)}"
+              onerror="this.style.display='none';this.parentNode.textContent='${Utils.escapeHtml(Utils.getCompanyInitials(co.name))}'">
+          </div>
+          <div>
+            <div class="company-name">${Utils.escapeHtml(co.name)}</div>
+            <div class="company-industry">${Utils.escapeHtml(co.industry || 'Technology')}</div>
+          </div>
+        </div>
+        <div class="company-stats">
+          <div class="company-stat-item">
+            <div class="company-stat-value">${jobCount}</div>
+            <div class="company-stat-label">Open Jobs</div>
+          </div>
+          <div class="company-stat-item">
+            <div class="company-stat-value">${Utils.escapeHtml(co.size || '—')}</div>
+            <div class="company-stat-label">Employees</div>
+          </div>
+          <div class="company-stat-item">
+            <div class="company-stat-value">${co.glassdoor_rating ? co.glassdoor_rating.toFixed(1) : '—'}</div>
+            <div class="company-stat-label">Rating</div>
+          </div>
+        </div>
+        <div style="margin-top:.875rem;display:flex;gap:.5rem">
+          <a href="jobs.html?search=${encodeURIComponent(co.name)}" class="btn btn-secondary btn-sm flex-1">View Jobs</a>
+          ${co.website ? `<a href="${Utils.escapeHtml(co.website)}" target="_blank" rel="noopener" class="btn btn-ghost btn-sm">Website</a>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

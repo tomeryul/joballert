@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — JobAlert</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .skills-input-wrap {
+      position: relative;
+    }
+    .skill-suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 50;
+      margin-top: 4px;
+    }
+    .skill-suggestion {
+      padding: .5rem 1rem;
+      cursor: pointer;
+      font-size: .85rem;
+      transition: var(--transition);
+    }
+    .skill-suggestion:hover { background: var(--bg-card-hover); }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div id="topbar-mount"></div>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">Configure your profile and preferences.</p>
+        </div>
+        <button class="btn btn-primary" id="save-all-btn">Save Changes</button>
+      </div>
+
+      <!-- Profile Section -->
+      <div class="settings-section" id="profile">
+        <div class="settings-section-header">
+          <div class="settings-section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <div class="settings-section-title">Your Profile</div>
+            <div class="text-muted text-sm">This information powers the AI matching engine</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" class="form-control" id="pf-name" placeholder="Your full name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Degree</label>
+              <input type="text" class="form-control" id="pf-degree" placeholder="e.g. MSc Computer Science">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Years of Experience</label>
+              <select class="form-control" id="pf-exp-years">
+                <option value="0">0–1 years (Graduate)</option>
+                <option value="1">1–2 years</option>
+                <option value="2">2–4 years</option>
+                <option value="4">4–6 years</option>
+                <option value="6">6+ years</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Remote Preference</label>
+              <select class="form-control" id="pf-remote">
+                <option value="any">Any</option>
+                <option value="remote">Remote Only</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">On-site</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">GitHub URL</label>
+              <input type="url" class="form-control" id="pf-github" placeholder="https://github.com/username">
+            </div>
+            <div class="form-group">
+              <label class="form-label">LinkedIn URL</label>
+              <input type="url" class="form-control" id="pf-linkedin" placeholder="https://linkedin.com/in/username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Target Roles (comma-separated)</label>
+            <input type="text" class="form-control" id="pf-titles" placeholder="Software Developer, Full Stack Developer, Backend Developer">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Your Skills</label>
+            <div class="skills-input-wrap">
+              <input type="text" class="form-control" id="skill-input" placeholder="Type a skill and press Enter…">
+            </div>
+            <div class="skill-picker" id="skills-container" style="margin-top:.625rem"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Experience Levels Targeting</label>
+            <div class="flex flex-wrap gap-2" id="exp-levels-picker">
+              ${['intern','junior','mid','senior','lead'].map(lvl => `
+                <label style="display:inline-flex;align-items:center;gap:.375rem;cursor:pointer;padding:.375rem .75rem;border-radius:8px;border:1px solid var(--glass-border);background:var(--bg-input);font-size:.8rem;transition:all .2s">
+                  <input type="checkbox" value="${lvl}" style="accent-color:var(--accent-primary)">
+                  ${CONFIG.EXPERIENCE_LABELS[lvl]}
+                </label>`).join('')}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Minimum Salary (optional)</label>
+            <input type="number" class="form-control" id="pf-salary-min" placeholder="e.g. 70000">
+            <div class="form-hint">Used for salary match scoring. Leave blank to match any salary.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <div class="settings-section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          </div>
+          <div>
+            <div class="settings-section-title">Notifications</div>
+            <div class="text-muted text-sm">Control how you're alerted about new matches</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Push Notifications</div>
+              <div class="settings-row-desc">Browser push alerts for new job matches</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="notif-push">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Email Notifications</div>
+              <div class="settings-row-desc">Daily digest of top matching jobs</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="notif-email" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Notify on new jobs</div>
+              <div class="settings-row-desc">Alert when new matching positions are found</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="notif-new-jobs" checked>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Minimum Match Score for Alerts</div>
+              <div class="settings-row-desc">Only notify for jobs above this match percentage</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.75rem">
+              <input type="range" id="min-score-range" min="40" max="95" step="5" value="60" style="width:120px;accent-color:var(--accent-primary)">
+              <span id="min-score-val" style="font-weight:700;min-width:35px">60%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Job Scanner Settings -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <div class="settings-section-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+          </div>
+          <div>
+            <div class="settings-section-title">Job Scanner</div>
+            <div class="text-muted text-sm">Configure which platforms to scan and how often</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Scan Frequency</div>
+              <div class="settings-row-desc">How often to check for new jobs</div>
+            </div>
+            <select class="form-control" id="scan-freq" style="width:auto">
+              <option value="1">Every hour</option>
+              <option value="3">Every 3 hours</option>
+              <option value="6">Every 6 hours</option>
+              <option value="24">Daily</option>
+            </select>
+          </div>
+          <div style="margin-top:1rem">
+            <div class="form-label" style="margin-bottom:.75rem">Active Providers</div>
+            <div class="provider-grid" id="provider-grid">
+              ${CONFIG.PROVIDERS.map(p => `
+                <div class="provider-chip active" data-provider="${p.id}" onclick="this.classList.toggle('active');updateProviderDot(this)">
+                  <span class="provider-chip-dot active"></span>
+                  ${p.name}
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="settings-section" style="border-color:rgba(239,68,68,.2)">
+        <div class="settings-section-header">
+          <div class="settings-section-icon" style="background:rgba(239,68,68,.12);color:var(--accent-danger)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <div class="settings-section-title">Account</div>
+            <div class="text-muted text-sm">Sign out or manage your account</div>
+          </div>
+        </div>
+        <div class="settings-section-body">
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label">Sign Out</div>
+              <div class="settings-row-desc">Log out of your JobAlert account</div>
+            </div>
+            <button class="btn btn-danger btn-sm" onclick="Auth.signOut()">Sign Out</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<div id="toast-container" class="toast-container"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/ai-matcher.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/jobs.js"></script>
+<script src="js/providers/base-provider.js"></script>
+<script src="js/providers/greenhouse.js"></script>
+<script src="js/providers/lever.js"></script>
+<script src="js/providers/ashby.js"></script>
+<script src="js/providers/wellfound.js"></script>
+<script src="js/providers/provider-registry.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.getElementById('sidebar-mount').innerHTML = buildSidebar('settings');
+document.getElementById('topbar-mount').innerHTML = buildTopbar();
+
+const COMMON_SKILLS = ['JavaScript','TypeScript','Python','Java','C++','C#','Ruby','Go','Rust',
+  'React','Vue','Angular','Next.js','Node.js','Express','Django','Spring','FastAPI',
+  'PostgreSQL','MySQL','MongoDB','Redis','AWS','GCP','Docker','Kubernetes',
+  'HTML','CSS','Sass','Tailwind','GraphQL','REST','Git','Linux','SQL'];
+
+let userSkills = [];
+
+(async () => {
+  await App.init();
+  if (!Auth.requireAuth()) return;
+
+  const profile = Auth.getEffectiveProfile();
+  const settings = Auth.settings || {};
+
+  // Fill profile fields
+  document.getElementById('pf-name').value = Auth.profile?.full_name || '';
+  document.getElementById('pf-degree').value = profile.degree || '';
+  document.getElementById('pf-exp-years').value = profile.experience_years || '0';
+  document.getElementById('pf-remote').value = profile.remote_preference || 'any';
+  document.getElementById('pf-github').value = Auth.profile?.github_url || '';
+  document.getElementById('pf-linkedin').value = Auth.profile?.linkedin_url || '';
+  document.getElementById('pf-titles').value = (profile.preferred_titles || []).join(', ');
+  document.getElementById('pf-salary-min').value = profile.salary_min || '';
+
+  // Skills
+  userSkills = [...(profile.skills || CONFIG.DEFAULT_PROFILE.skills)];
+  renderSkills();
+
+  // Experience levels
+  const userLevels = profile.experience_levels || CONFIG.DEFAULT_PROFILE.experience_levels;
+  document.querySelectorAll('#exp-levels-picker input[type="checkbox"]').forEach(cb => {
+    cb.checked = userLevels.includes(cb.value);
+  });
+
+  // Notification settings
+  document.getElementById('notif-push').checked = settings.push_enabled || false;
+  document.getElementById('notif-email').checked = settings.email_enabled !== false;
+  document.getElementById('notif-new-jobs').checked = settings.notify_new_jobs !== false;
+  document.getElementById('min-score-range').value = settings.min_match_score || 60;
+  document.getElementById('min-score-val').textContent = `${settings.min_match_score || 60}%`;
+  document.getElementById('scan-freq').value = settings.scan_frequency_hours || 1;
+
+  // Provider chips
+  const enabledProviders = settings.providers_enabled || CONFIG.PROVIDERS.map(p => p.id);
+  document.querySelectorAll('[data-provider]').forEach(chip => {
+    const active = enabledProviders.includes(chip.dataset.provider);
+    chip.classList.toggle('active', active);
+    chip.querySelector('.provider-chip-dot')?.classList.toggle('active', active);
+    chip.querySelector('.provider-chip-dot')?.classList.toggle('inactive', !active);
+  });
+})();
+
+// Skill input
+document.getElementById('skill-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,$/, '');
+    if (val && !userSkills.includes(val)) {
+      userSkills.push(val);
+      renderSkills();
+    }
+    e.target.value = '';
+  }
+});
+
+function renderSkills() {
+  const container = document.getElementById('skills-container');
+  container.innerHTML = userSkills.map(s => `
+    <div class="skill-pick-item selected" data-skill="${Utils.escapeHtml(s)}">
+      ${Utils.escapeHtml(s)}
+      <button onclick="removeSkill('${Utils.escapeHtml(s)}')" style="font-size:.9rem;color:var(--text-muted);padding:0 0 0 .2rem;background:none;border:none;cursor:pointer">×</button>
+    </div>`).join('');
+
+  // Suggestions
+  COMMON_SKILLS.filter(s => !userSkills.includes(s)).slice(0, 12).forEach(s => {
+    const chip = document.createElement('div');
+    chip.className = 'skill-pick-item';
+    chip.textContent = s;
+    chip.onclick = () => { userSkills.push(s); renderSkills(); };
+    container.appendChild(chip);
+  });
+}
+
+function removeSkill(s) {
+  userSkills = userSkills.filter(sk => sk !== s);
+  renderSkills();
+}
+
+function updateProviderDot(el) {
+  const dot = el.querySelector('.provider-chip-dot');
+  if (el.classList.contains('active')) {
+    dot?.classList.replace('inactive', 'active');
+  } else {
+    dot?.classList.replace('active', 'inactive');
+  }
+}
+
+document.getElementById('min-score-range').addEventListener('input', (e) => {
+  document.getElementById('min-score-val').textContent = `${e.target.value}%`;
+});
+
+document.getElementById('save-all-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('save-all-btn');
+  Utils.setLoading(btn, true, 'Saving…');
+
+  try {
+    const expLevels = [...document.querySelectorAll('#exp-levels-picker input:checked')].map(c => c.value);
+    const providers = [...document.querySelectorAll('[data-provider].active')].map(c => c.dataset.provider);
+
+    await Promise.all([
+      Auth.updateProfile({
+        full_name: document.getElementById('pf-name').value,
+        degree: document.getElementById('pf-degree').value,
+        experience_years: parseInt(document.getElementById('pf-exp-years').value) || 0,
+        remote_preference: document.getElementById('pf-remote').value,
+        github_url: document.getElementById('pf-github').value,
+        linkedin_url: document.getElementById('pf-linkedin').value,
+        preferred_titles: document.getElementById('pf-titles').value.split(',').map(s => s.trim()).filter(Boolean),
+        salary_min: parseInt(document.getElementById('pf-salary-min').value) || null,
+        skills: userSkills,
+        experience_levels: expLevels,
+      }),
+      Auth.updateSettings({
+        push_enabled: document.getElementById('notif-push').checked,
+        email_enabled: document.getElementById('notif-email').checked,
+        notify_new_jobs: document.getElementById('notif-new-jobs').checked,
+        min_match_score: parseInt(document.getElementById('min-score-range').value),
+        scan_frequency_hours: parseInt(document.getElementById('scan-freq').value),
+        providers_enabled: providers,
+      }),
+    ]);
+
+    AIMatcher.clearCache();
+    Toasts.success('Saved!', 'Your settings have been updated');
+  } catch (err) {
+    Toasts.error('Error', err.message);
+  } finally {
+    Utils.setLoading(btn, false);
+    btn.innerHTML = 'Save Changes';
+  }
+});
+
+// Push notification toggle
+document.getElementById('notif-push').addEventListener('change', async (e) => {
+  if (e.target.checked) {
+    const ok = await PushNotifications.requestPermission();
+    if (!ok) {
+      e.target.checked = false;
+      Toasts.warning('Permission denied', 'Please allow notifications in your browser settings');
+    } else {
+      Toasts.success('Push enabled', 'You\'ll receive browser notifications for new matches');
+    }
+  }
+});
+</script>
+</body>
+</html>

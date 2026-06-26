@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Jobs — JobAlert</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <style>
+    .jobs-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1rem; }
+    @media(max-width:640px) { .jobs-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div class="app-layout">
+  <div id="sidebar-mount"></div>
+  <div class="main-content">
+    <div id="topbar-mount"></div>
+    <main class="page-content">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1 class="page-title">All Jobs</h1>
+          <p class="page-subtitle" id="results-count">Loading jobs…</p>
+        </div>
+        <div class="flex gap-2">
+          <select class="form-control" id="sort-select" style="width:auto">
+            <option value="date_posted">Newest First</option>
+            <option value="salary">Highest Salary</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <input type="text" id="search-input" placeholder="Search title, company, skill…" value="">
+        <select id="remote-filter">
+          <option value="any">Any Location</option>
+          <option value="remote">Remote Only</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="onsite">On-site</option>
+        </select>
+        <select id="level-filter">
+          <option value="any">Any Level</option>
+          <option value="intern">Intern</option>
+          <option value="junior">Junior</option>
+          <option value="mid">Mid-Level</option>
+          <option value="senior">Senior</option>
+          <option value="lead">Lead</option>
+        </select>
+        <select id="source-filter">
+          <option value="all">All Sources</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" id="clear-filters">Clear</button>
+        <span class="filter-count" id="filter-count"></span>
+      </div>
+
+      <!-- Jobs Grid -->
+      <div class="jobs-grid" id="jobs-grid">
+        <div class="loading-overlay" style="grid-column:1/-1">
+          <div class="loading-spinner loading-spinner-lg"></div>
+          <p class="text-muted">Loading jobs…</p>
+        </div>
+      </div>
+
+      <div id="pagination-mount"></div>
+    </main>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/ai-matcher.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/notifications.js"></script>
+<script src="js/jobs.js"></script>
+<script src="js/providers/base-provider.js"></script>
+<script src="js/providers/greenhouse.js"></script>
+<script src="js/providers/lever.js"></script>
+<script src="js/providers/ashby.js"></script>
+<script src="js/providers/wellfound.js"></script>
+<script src="js/providers/provider-registry.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.getElementById('sidebar-mount').innerHTML = buildSidebar('jobs');
+document.getElementById('topbar-mount').innerHTML = buildTopbar();
+
+let currentPage = 1;
+const grid = document.getElementById('jobs-grid');
+const paginationMount = document.getElementById('pagination-mount');
+
+(async () => {
+  await App.init();
+  if (!Auth.requireAuth()) return;
+  await JobManager.init();
+
+  // Populate source filter
+  const { data: jobs } = await DB.getJobs({ limit: 200 });
+  const sources = [...new Set((jobs || []).map(j => j.source))].sort();
+  const sourceSelect = document.getElementById('source-filter');
+  sources.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = Utils.capitalize(s);
+    sourceSelect.appendChild(opt);
+  });
+
+  // Init search from URL
+  const urlSearch = Utils.getParam('search');
+  if (urlSearch) document.getElementById('search-input').value = urlSearch;
+
+  await loadJobs();
+
+  // Event listeners
+  const debouncedLoad = Utils.debounce(() => { currentPage = 1; loadJobs(); }, 400);
+  document.getElementById('search-input').addEventListener('input', debouncedLoad);
+  document.getElementById('remote-filter').addEventListener('change', () => { currentPage = 1; loadJobs(); });
+  document.getElementById('level-filter').addEventListener('change', () => { currentPage = 1; loadJobs(); });
+  document.getElementById('source-filter').addEventListener('change', () => { currentPage = 1; loadJobs(); });
+  document.getElementById('sort-select').addEventListener('change', () => { currentPage = 1; loadJobs(); });
+  document.getElementById('clear-filters').addEventListener('click', () => {
+    document.getElementById('search-input').value = '';
+    document.getElementById('remote-filter').value = 'any';
+    document.getElementById('level-filter').value = 'any';
+    document.getElementById('source-filter').value = 'all';
+    document.getElementById('sort-select').value = 'date_posted';
+    currentPage = 1;
+    loadJobs();
+  });
+
+  JobManager.initCardActions(grid);
+})();
+
+async function loadJobs(page = currentPage) {
+  grid.innerHTML = JobManager.renderSkeletons(6);
+
+  const filters = {
+    search: document.getElementById('search-input')?.value?.trim() || '',
+    remote: document.getElementById('remote-filter')?.value || 'any',
+    experience: document.getElementById('level-filter')?.value || 'any',
+    source: document.getElementById('source-filter')?.value || 'all',
+    sort: document.getElementById('sort-select')?.value || 'date_posted',
+    page,
+  };
+
+  try {
+    const { jobs, total } = await JobManager.fetchJobs(filters, page);
+
+    document.getElementById('results-count').textContent = `${Utils.formatNumber(total)} jobs found`;
+    document.getElementById('filter-count').textContent = `Showing ${jobs.length} of ${total}`;
+
+    if (!jobs.length) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
+          <h3>No jobs found</h3>
+          <p>Try adjusting your filters or run a scan to import new jobs.</p>
+          <a href="dashboard.html" class="btn btn-primary" style="margin-top:.5rem">Go to Dashboard</a>
+        </div>`;
+      paginationMount.innerHTML = '';
+      return;
+    }
+
+    grid.innerHTML = jobs.map(job => JobManager.renderJobCard(job)).join('');
+    paginationMount.innerHTML = JobManager.renderPagination(total, page, CONFIG.JOBS_PER_PAGE);
+
+    paginationMount.querySelectorAll('[data-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentPage = parseInt(btn.dataset.page);
+        loadJobs(currentPage);
+        Utils.scrollToTop();
+      });
+    });
+  } catch (err) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>Error loading jobs: ${Utils.escapeHtml(err.message)}</p></div>`;
+  }
+}
+</script>
+</body>
+</html>
