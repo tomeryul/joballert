@@ -9,21 +9,18 @@ class WellfoundProvider extends BaseProvider {
   }
 
   async fetchJobs(query = {}) {
-    const keywords = query.keywords || 'software engineer developer';
-    const remote = query.remote !== false;
     const results = [];
 
-    // Wellfound has a public API for job listings
     const searches = [
-      { role: 'software-engineer', label: 'Software Engineer' },
-      { role: 'full-stack-engineer', label: 'Full Stack Engineer' },
-      { role: 'backend-engineer', label: 'Backend Engineer' },
-      { role: 'frontend-engineer', label: 'Frontend Engineer' },
+      { role: 'software-engineer' },
+      { role: 'full-stack-engineer' },
+      { role: 'backend-engineer' },
+      { role: 'frontend-engineer' },
     ];
 
     for (const search of searches) {
       try {
-        const jobs = await this._fetchByRole(search.role, remote);
+        const jobs = await this._fetchByRole(search.role);
         results.push(...jobs);
         await this._sleep(this.rateLimit);
       } catch {
@@ -34,11 +31,8 @@ class WellfoundProvider extends BaseProvider {
     return results;
   }
 
-  async _fetchByRole(role, remote) {
-    const params = new URLSearchParams({
-      role,
-      ...(remote ? { remote: '1' } : {}),
-    });
+  async _fetchByRole(role) {
+    const params = new URLSearchParams({ role, location: 'israel' });
 
     const proxyUrl = `https://wellfound.com/jobs.json?${params}`;
     const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(proxyUrl)}`;

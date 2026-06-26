@@ -113,6 +113,13 @@ class BaseProvider {
     });
   }
 
+  // ── Israel location check ─────────────────
+  _isIsraeliOrRemote(job) {
+    const loc = (job.location || '').toLowerCase();
+    const IL_RE = /\bisrael\b|tel[- ]?aviv|jerusalem|haifa|herzliya|ramat[- ]?gan|be.?er[- ]?sheva|petah[- ]?tikva|ra.?anana|rehovot|netanya|bnei[- ]?brak|holon|modiin|ashdod|ashkelon/i;
+    return IL_RE.test(loc) || job.remote_type === 'remote';
+  }
+
   // ── Dedup check ───────────────────────────
   isDuplicate(job, existing) {
     if (!existing?.length) return false;

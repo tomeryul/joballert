@@ -8,23 +8,22 @@ class GreenhouseProvider extends BaseProvider {
   constructor() {
     super({ id: 'greenhouse', name: 'Greenhouse', rateLimit: 500 });
 
-    // Companies known to use Greenhouse (add more as needed)
+    // Israeli tech companies using Greenhouse ATS
     this._companies = [
-      { slug: 'databricks', name: 'Databricks' },
-      { slug: 'figma', name: 'Figma' },
-      { slug: 'notion', name: 'Notion' },
-      { slug: 'ramp', name: 'Ramp' },
-      { slug: 'retool', name: 'Retool' },
-      { slug: 'scale', name: 'Scale AI' },
-      { slug: 'benchling', name: 'Benchling' },
-      { slug: 'asana', name: 'Asana' },
-      { slug: 'segment', name: 'Segment' },
-      { slug: 'brex', name: 'Brex' },
-      { slug: 'gusto', name: 'Gusto' },
-      { slug: 'flexport', name: 'Flexport' },
-      { slug: 'mixpanel', name: 'Mixpanel' },
-      { slug: 'plaid', name: 'Plaid' },
-      { slug: 'intercom', name: 'Intercom' },
+      { slug: 'monday',       name: 'monday.com' },
+      { slug: 'fiverr',       name: 'Fiverr' },
+      { slug: 'jfrog',        name: 'JFrog' },
+      { slug: 'cyberark',     name: 'CyberArk' },
+      { slug: 'taboola',      name: 'Taboola' },
+      { slug: 'outbrain',     name: 'Outbrain' },
+      { slug: 'snyk',         name: 'Snyk' },
+      { slug: 'bigid',        name: 'BigID' },
+      { slug: 'walkme',       name: 'WalkMe' },
+      { slug: 'payoneer',     name: 'Payoneer' },
+      { slug: 'radware',      name: 'Radware' },
+      { slug: 'imperva',      name: 'Imperva' },
+      { slug: 'amdocs',       name: 'Amdocs' },
+      { slug: 'sito',         name: 'SitoMobile' },
     ];
   }
 

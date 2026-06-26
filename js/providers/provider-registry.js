@@ -56,7 +56,9 @@ class ProviderRegistry {
         onProgress?.({ provider: provider.name, status: 'scanning' });
 
         const jobs = await provider.fetchJobs(query);
-        const normalized = jobs.filter(j => j.url && j.title && j.company_name);
+        const normalized = jobs
+          .filter(j => j.url && j.title && j.company_name)
+          .filter(j => provider._isIsraeliOrRemote(j));
 
         results.byProvider[provider.id] = { found: normalized.length, new: 0, errors: 0 };
         results.totalFound += normalized.length;

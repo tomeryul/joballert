@@ -29,6 +29,7 @@ const CONFIG = {
     preferred_titles: ['Software Developer', 'Full Stack Developer', 'Backend Developer', 'Frontend Developer', 'Junior Software Engineer'],
     experience_levels: ['junior', 'mid'],
     remote_preference: 'any',
+    location: 'Israel',
   },
 
   // AI Matching weights (out of 100)

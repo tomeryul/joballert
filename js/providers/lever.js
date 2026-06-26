@@ -8,20 +8,19 @@ class LeverProvider extends BaseProvider {
   constructor() {
     super({ id: 'lever', name: 'Lever', rateLimit: 500 });
 
+    // Israeli tech companies using Lever ATS
     this._companies = [
-      { slug: 'netflix', name: 'Netflix' },
-      { slug: 'reddit', name: 'Reddit' },
-      { slug: 'twitch', name: 'Twitch' },
-      { slug: 'airtable', name: 'Airtable' },
-      { slug: 'canva', name: 'Canva' },
-      { slug: 'carta', name: 'Carta' },
-      { slug: 'dropbox', name: 'Dropbox' },
-      { slug: 'calm', name: 'Calm' },
-      { slug: 'discord', name: 'Discord' },
-      { slug: 'duolingo', name: 'Duolingo' },
-      { slug: 'faire', name: 'Faire' },
-      { slug: 'figma', name: 'Figma' },
-      { slug: 'coda', name: 'Coda' },
+      { slug: 'riskified',      name: 'Riskified' },
+      { slug: 'lightricks',     name: 'Lightricks' },
+      { slug: 'forter',         name: 'Forter' },
+      { slug: 'next-insurance', name: 'Next Insurance' },
+      { slug: 'pagaya',         name: 'Pagaya' },
+      { slug: 'guesty',         name: 'Guesty' },
+      { slug: 'ironSource',     name: 'ironSource' },
+      { slug: 'varonis',        name: 'Varonis' },
+      { slug: 'salto',          name: 'Salto' },
+      { slug: 'lusha',          name: 'Lusha' },
+      { slug: 'talkdesk',       name: 'Talkdesk' },
     ];
   }
 

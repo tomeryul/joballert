@@ -75,6 +75,7 @@ const App = {
     const query = {
       keywords: profile.preferred_titles?.join(' ') || 'software developer engineer',
       remote: profile.remote_preference,
+      location: profile.location || 'Israel',
     };
 
     const enabledProviders = Auth.settings?.providers_enabled || [];
