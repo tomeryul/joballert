@@ -277,8 +277,8 @@
   <script src="js/config.js"></script>
   <script src="js/utils.js"></script>
   <script src="js/supabase-client.js"></script>
+  <script src="js/notifications.js"></script>
   <script>
-    Toasts._container = document.getElementById('toast-container');
     Toasts.init();
 
     // Tab switching
@@ -326,7 +326,14 @@
         if (error) throw error;
         window.location.href = 'dashboard.html';
       } catch (err) {
-        showError(err.message || 'Sign in failed. Please check your credentials.');
+        const msg = err.message || '';
+        if (msg.toLowerCase().includes('email not confirmed')) {
+          showError('Please confirm your email first. Check your inbox for a confirmation link.');
+        } else if (msg.toLowerCase().includes('invalid login credentials')) {
+          showError('Incorrect email or password.');
+        } else {
+          showError(msg || 'Sign in failed. Please check your credentials.');
+        }
         btn.disabled = false;
         btn.innerHTML = 'Sign In';
       }
@@ -346,9 +353,19 @@
 
       try {
         const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        const { error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
         if (error) throw error;
-        Toasts.success('Account created!', 'Check your email to confirm your account, then sign in.');
+
+        // If email confirmation is disabled, session is returned immediately
+        if (data.session) {
+          window.location.href = 'dashboard.html';
+          return;
+        }
+
+        // Email confirmation required — switch to sign-in tab with a message
+        Toasts.success('Account created!', 'Check your email to confirm, then sign in here.');
+        document.querySelector('[data-tab="signin"]').click();
+        document.getElementById('signin-email').value = email;
         btn.disabled = false;
         btn.innerHTML = 'Create Account';
       } catch (err) {
