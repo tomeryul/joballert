@@ -64,7 +64,7 @@
         <div class="ai-banner-icon">🤖</div>
         <div>
           <h3>Smart Matching Active</h3>
-          <p>Scoring based on your skills (JavaScript, React, Java, Python + more), MSc CS degree, and junior/mid-level targets.</p>
+          <p id="ai-banner-desc">Loading your profile…</p>
         </div>
       </div>
 
@@ -120,6 +120,7 @@ const grid = document.getElementById('rec-grid');
   await App.init();
   if (!Auth.requireAuth()) return;
   await JobManager.init();
+  _updateAIBanner();
   await loadRecommended();
 
   document.querySelectorAll('.score-btn').forEach(btn => {
@@ -134,6 +135,16 @@ const grid = document.getElementById('rec-grid');
   document.getElementById('rec-remote').addEventListener('change', loadRecommended);
   JobManager.initCardActions(grid);
 })();
+
+function _updateAIBanner() {
+  const p = document.getElementById('ai-banner-desc');
+  if (!p) return;
+  const profile = Auth.getEffectiveProfile();
+  const skillList = (profile.skills || []).slice(0, 5).join(', ') || 'your skills';
+  const levels = (profile.experience_levels || []).join('/') || 'all levels';
+  const cities = (profile.preferred_locations || []).join(', ') || 'Israel';
+  p.textContent = `Scoring based on your skills (${skillList}), targeting ${levels} roles in ${cities}.`;
+}
 
 async function loadRecommended() {
   grid.innerHTML = JobManager.renderSkeletons(6);
