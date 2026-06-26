@@ -316,9 +316,15 @@
       return `${location.origin}${location.pathname.replace(/index\.html$/, '')}dashboard.html`;
     }
 
+    function makeSB() {
+      return window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+        auth: { storageKey: 'joballert-auth', persistSession: true, autoRefreshToken: true },
+      });
+    }
+
     // Check if already logged in
     (async () => {
-      const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+      const sb = makeSB();
       const { data: { session } } = await sb.auth.getSession();
       if (session) window.location.href = 'dashboard.html';
     })();
@@ -335,7 +341,7 @@
       btn.innerHTML = '<span class="loading-spinner"></span> Signing in…';
 
       try {
-        const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        const sb = makeSB();
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
         window.location.href = 'dashboard.html';
@@ -378,7 +384,7 @@
         }
 
         // Auto sign-in immediately after account creation
-        const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        const sb = makeSB();
         const { error: signInError } = await sb.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
 
