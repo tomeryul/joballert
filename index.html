@@ -292,14 +292,28 @@
       });
     });
 
+    function extractMsg(err) {
+      if (!err) return 'Something went wrong. Please try again.';
+      const msg = err.message || err.msg || err.error_description || '';
+      if (!msg || msg === '{}' || msg === '[]') {
+        // Supabase returned empty JSON — usually means Site URL is not configured
+        return 'Auth configuration error. Please ensure your site URL is added to Supabase Dashboard → Authentication → URL Configuration.';
+      }
+      return msg;
+    }
+
     function showError(msg) {
       const el = document.getElementById('error-msg');
-      el.textContent = msg;
+      el.textContent = typeof msg === 'string' ? msg : extractMsg(msg);
       el.style.display = 'block';
     }
 
     function hideError() {
       document.getElementById('error-msg').style.display = 'none';
+    }
+
+    function getRedirectTo() {
+      return `${location.origin}${location.pathname.replace(/index\.html$/, '')}dashboard.html`;
     }
 
     // Check if already logged in
@@ -326,13 +340,13 @@
         if (error) throw error;
         window.location.href = 'dashboard.html';
       } catch (err) {
-        const msg = err.message || '';
-        if (msg.toLowerCase().includes('email not confirmed')) {
+        const msg = extractMsg(err).toLowerCase();
+        if (msg.includes('email not confirmed')) {
           showError('Please confirm your email first. Check your inbox for a confirmation link.');
-        } else if (msg.toLowerCase().includes('invalid login credentials')) {
+        } else if (msg.includes('invalid login credentials') || msg.includes('invalid email or password')) {
           showError('Incorrect email or password.');
         } else {
-          showError(msg || 'Sign in failed. Please check your credentials.');
+          showError(extractMsg(err));
         }
         btn.disabled = false;
         btn.innerHTML = 'Sign In';
@@ -353,11 +367,18 @@
 
       try {
         const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name },
+            emailRedirectTo: getRedirectTo(),
+          },
+        });
         if (error) throw error;
 
         // If email confirmation is disabled, session is returned immediately
-        if (data.session) {
+        if (data?.session) {
           window.location.href = 'dashboard.html';
           return;
         }
@@ -369,7 +390,7 @@
         btn.disabled = false;
         btn.innerHTML = 'Create Account';
       } catch (err) {
-        showError(err.message || 'Sign up failed. Please try again.');
+        showError(extractMsg(err));
         btn.disabled = false;
         btn.innerHTML = 'Create Account';
       }
