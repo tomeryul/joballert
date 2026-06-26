@@ -47,12 +47,11 @@ function skills(text: string): string[] {
   );
 }
 function devJob(text: string): boolean {
-  return /developer|engineer|software|backend|frontend|fullstack|full.?stack|devops|data.?sci|qa|sre|site.?reli|architect|מפתח|תוכנה/i.test(text);
+  return /developer|engineer|software|backend|frontend|fullstack|full.?stack|devops|data.?sci|qa|sre|site.?reli|architect|security.?researcher|מפתח|תוכנה/i.test(text);
 }
 
 // ── DRUSHIM RSS ───────────────────────────
 async function fetchDrushim(): Promise<any[]> {
-  // /rss/ is the working endpoint (cat-specific URLs return 404)
   const feed = 'https://www.drushim.co.il/rss/';
   const seen = new Set<string>();
   const jobs: any[] = [];
@@ -68,7 +67,6 @@ async function fetchDrushim(): Promise<any[]> {
     if (!res.ok) return jobs;
     const xml = await res.text();
 
-    // Extract <item> blocks
     const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
     for (const [, body] of items) {
       const title   = (body.match(/<title[^>]*>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/) || [])[1]?.trim() || '';
@@ -124,7 +122,6 @@ async function fetchLinkedIn(): Promise<any[]> {
       if (!res.ok) continue;
       const html = await res.text();
 
-      // Extract titles
       const titles    = [...html.matchAll(/class="base-search-card__title"[^>]*>\s*([^<]+)\s*<\/h3>/g)].map(m => m[1].trim());
       const companies = [...html.matchAll(/class="base-search-card__subtitle"[^>]*>[\s\S]*?<a[^>]*>([^<]+)<\/a>/g)].map(m => m[1].trim());
       const locs      = [...html.matchAll(/class="job-search-card__location"[^>]*>([^<]+)<\/span>/g)].map(m => m[1].trim());
@@ -161,43 +158,61 @@ async function fetchLinkedIn(): Promise<any[]> {
 
 // ── GREENHOUSE (Israeli companies) ────────
 const GH_COMPANIES = [
-  { slug: 'monday',         name: 'monday.com' },
-  { slug: 'fiverr',         name: 'Fiverr' },
-  { slug: 'jfrog',          name: 'JFrog' },
-  { slug: 'cyberark',       name: 'CyberArk' },
-  { slug: 'taboola',        name: 'Taboola' },
-  { slug: 'outbrain',       name: 'Outbrain' },
-  { slug: 'snyk',           name: 'Snyk' },
-  { slug: 'payoneer',       name: 'Payoneer' },
-  { slug: 'walkme',         name: 'WalkMe' },
-  { slug: 'bigid',          name: 'BigID' },
-  { slug: 'radware',        name: 'Radware' },
-  { slug: 'imperva',        name: 'Imperva' },
-  { slug: 'amdocs',         name: 'Amdocs' },
-  { slug: 'wix',            name: 'Wix' },
-  { slug: 'checkmarx',      name: 'Checkmarx' },
-  { slug: 'sisense',        name: 'Sisense' },
-  { slug: 'papaya',         name: 'Papaya Global' },
-  { slug: 'similarweb',     name: 'SimilarWeb' },
-  { slug: 'gong',           name: 'Gong' },
+  // ── Established tech giants ──
+  { slug: 'monday',           name: 'monday.com' },
+  { slug: 'wix',              name: 'Wix' },
+  { slug: 'fiverr',           name: 'Fiverr' },
+  { slug: 'jfrog',            name: 'JFrog' },
+  { slug: 'amdocs',           name: 'Amdocs' },
+  { slug: 'radware',          name: 'Radware' },
+  { slug: 'imperva',          name: 'Imperva' },
+  { slug: 'taboola',          name: 'Taboola' },
+  { slug: 'outbrain',         name: 'Outbrain' },
+  { slug: 'payoneer',         name: 'Payoneer' },
+  { slug: 'walkme',           name: 'WalkMe' },
+  { slug: 'liveperson',       name: 'LivePerson' },
+  { slug: 'similarweb',       name: 'SimilarWeb' },
+  { slug: 'sisense',          name: 'Sisense' },
+  { slug: 'yotpo',            name: 'Yotpo' },
+  { slug: 'optimove',         name: 'Optimove' },
+  { slug: 'perion',           name: 'Perion Network' },
+  { slug: 'allot',            name: 'Allot' },
+  { slug: 'incredibuild',     name: 'Incredibuild' },
+  { slug: 'totango',          name: 'Totango' },
+  { slug: 'namogoo',          name: 'Namogoo' },
+  { slug: 'anodot',           name: 'Anodot' },
+  // ── Cybersecurity ──
+  { slug: 'cyberark',         name: 'CyberArk' },
+  { slug: 'checkmarx',        name: 'Checkmarx' },
+  { slug: 'snyk',             name: 'Snyk' },
+  { slug: 'sentinelone',      name: 'SentinelOne' },
   { slug: 'paloaltonetworks', name: 'Palo Alto Networks' },
-  { slug: 'armis',          name: 'Armis' },
-  { slug: 'aquasecurity',   name: 'Aqua Security' },
-  { slug: 'orca',           name: 'Orca Security' },
-  { slug: 'axonius',        name: 'Axonius' },
-  { slug: 'vulcan',         name: 'Vulcan Cyber' },
-  { slug: 'noname',         name: 'Noname Security' },
-  { slug: 'sygnia',         name: 'Sygnia' },
-  { slug: 'walla',          name: 'Walla Communications' },
-  { slug: 'ironnet',        name: 'IronNet' },
-  { slug: 'coralogix',      name: 'Coralogix' },
-  { slug: 'yotpo',          name: 'Yotpo' },
-  { slug: 'liveperson',     name: 'LivePerson' },
-  { slug: 'optimove',       name: 'Optimove' },
+  { slug: 'armis',            name: 'Armis' },
+  { slug: 'aquasecurity',     name: 'Aqua Security' },
+  { slug: 'orca',             name: 'Orca Security' },
+  { slug: 'axonius',          name: 'Axonius' },
+  { slug: 'claroty',          name: 'Claroty' },
+  { slug: 'deepinstinct',     name: 'Deep Instinct' },
+  { slug: 'ironscales',       name: 'IRONSCALES' },
+  { slug: 'pentera',          name: 'Pentera' },
+  { slug: 'hunters',          name: 'Hunters.ai' },
+  { slug: 'sygnia',           name: 'Sygnia' },
+  { slug: 'noname',           name: 'Noname Security' },
+  { slug: 'vulcan',           name: 'Vulcan Cyber' },
+  // ── AI / Data ──
+  { slug: 'gong',             name: 'Gong' },
+  { slug: 'bigid',            name: 'BigID' },
+  { slug: 'bigpanda',         name: 'BigPanda' },
+  { slug: 'logzio',           name: 'Logz.io' },
+  { slug: 'coralogix',        name: 'Coralogix' },
+  { slug: 'papaya',           name: 'Papaya Global' },
+  // ── Enterprise / Cloud ──
+  { slug: 'walla',            name: 'Walla' },
 ];
 
 async function fetchGreenhouse(): Promise<any[]> {
   const jobs: any[] = [];
+  const seen = new Set<string>();
   for (const co of GH_COMPANIES) {
     try {
       const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${co.slug}/jobs?content=true`, { signal: AbortSignal.timeout(10000) });
@@ -207,6 +222,8 @@ async function fetchGreenhouse(): Promise<any[]> {
         const loc = j.location?.name || '';
         if (!isIsraeli(loc)) continue;
         if (!devJob(j.title + ' ' + (j.content || ''))) continue;
+        if (seen.has(j.absolute_url)) continue;
+        seen.add(j.absolute_url);
         jobs.push({
           title: clean(j.title),
           company_name: co.name,
@@ -223,7 +240,7 @@ async function fetchGreenhouse(): Promise<any[]> {
           is_active: true,
         });
       }
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
     } catch (e) { console.warn(`greenhouse ${co.slug}:`, e); }
   }
   return jobs;
@@ -231,26 +248,31 @@ async function fetchGreenhouse(): Promise<any[]> {
 
 // ── LEVER (Israeli companies) ─────────────
 const LV_COMPANIES = [
-  { slug: 'riskified',       name: 'Riskified' },
-  { slug: 'lightricks',      name: 'Lightricks' },
-  { slug: 'forter',          name: 'Forter' },
-  { slug: 'next-insurance',  name: 'Next Insurance' },
-  { slug: 'pagaya',          name: 'Pagaya' },
-  { slug: 'guesty',          name: 'Guesty' },
-  { slug: 'ironSource',      name: 'ironSource' },
-  { slug: 'varonis',         name: 'Varonis' },
-  { slug: 'lusha',           name: 'Lusha' },
-  { slug: 'salto',           name: 'Salto' },
-  { slug: 'appsflyer',       name: 'AppsFlyer' },
-  { slug: 'tipalti',         name: 'Tipalti' },
-  { slug: 'housecallpro',    name: 'Housecall Pro' },
-  { slug: 'kaltura',         name: 'Kaltura' },
-  { slug: 'elementor',       name: 'Elementor' },
-  { slug: 'cloudinary',      name: 'Cloudinary' },
-  { slug: 'sealights',       name: 'SeaLights' },
-  { slug: 'dynamic-yield',   name: 'Dynamic Yield' },
-  { slug: 'cato-networks',   name: 'Cato Networks' },
-  { slug: 'deel',            name: 'Deel' },
+  // ── Fintech / Payments ──
+  { slug: 'riskified',        name: 'Riskified' },
+  { slug: 'forter',           name: 'Forter' },
+  { slug: 'pagaya',           name: 'Pagaya' },
+  { slug: 'tipalti',          name: 'Tipalti' },
+  { slug: 'next-insurance',   name: 'Next Insurance' },
+  { slug: 'melio',            name: 'Melio Payments' },
+  { slug: 'rapyd',            name: 'Rapyd' },
+  // ── Consumer / Media ──
+  { slug: 'lightricks',       name: 'Lightricks' },
+  { slug: 'guesty',           name: 'Guesty' },
+  { slug: 'ironSource',       name: 'ironSource' },
+  { slug: 'elementor',        name: 'Elementor' },
+  { slug: 'cloudinary',       name: 'Cloudinary' },
+  { slug: 'dynamic-yield',    name: 'Dynamic Yield' },
+  { slug: 'kaltura',          name: 'Kaltura' },
+  // ── Enterprise SaaS ──
+  { slug: 'varonis',          name: 'Varonis' },
+  { slug: 'lusha',            name: 'Lusha' },
+  { slug: 'salto',            name: 'Salto' },
+  { slug: 'appsflyer',        name: 'AppsFlyer' },
+  { slug: 'cato-networks',    name: 'Cato Networks' },
+  { slug: 'sealights',        name: 'SeaLights' },
+  { slug: 'deel',             name: 'Deel' },
+  { slug: 'cybereason',       name: 'Cybereason' },
 ];
 
 async function fetchLever(): Promise<any[]> {
@@ -280,7 +302,7 @@ async function fetchLever(): Promise<any[]> {
           is_active: true,
         });
       }
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
     } catch (e) { console.warn(`lever ${co.slug}:`, e); }
   }
   return jobs;
@@ -288,18 +310,25 @@ async function fetchLever(): Promise<any[]> {
 
 // ── ASHBY (Israeli companies) ─────────────
 const AB_COMPANIES = [
-  { slug: 'wiz',           name: 'Wiz' },
-  { slug: 'anysphere',     name: 'Cursor' },
-  { slug: 'doit',          name: 'DoiT International' },
-  { slug: 'getsafe',       name: 'GetSafe' },
-  { slug: 'lemonade',      name: 'Lemonade' },
-  { slug: 'fundbox',       name: 'Fundbox' },
-  { slug: 'nayax',         name: 'Nayax' },
-  { slug: 'playtika',      name: 'Playtika' },
-  { slug: 'cellebrite',    name: 'Cellebrite' },
-  { slug: 'ceva',          name: 'CEVA' },
-  { slug: 'trigo',         name: 'Trigo Vision' },
-  { slug: 'innplay',       name: 'Innplay Labs' },
+  // ── Cybersecurity / AI ──
+  { slug: 'wiz',              name: 'Wiz' },
+  { slug: 'cellebrite',       name: 'Cellebrite' },
+  { slug: 'trigo',            name: 'Trigo Vision' },
+  { slug: 'percepto',         name: 'Percepto' },
+  { slug: 'classiq',          name: 'Classiq' },
+  // ── Fintech ──
+  { slug: 'lemonade',         name: 'Lemonade' },
+  { slug: 'fundbox',          name: 'Fundbox' },
+  { slug: 'nayax',            name: 'Nayax' },
+  // ── Enterprise / Dev Tools ──
+  { slug: 'doit',             name: 'DoiT International' },
+  { slug: 'buildots',         name: 'Buildots' },
+  { slug: 'windward',         name: 'Windward' },
+  // ── Gaming / Consumer ──
+  { slug: 'playtika',         name: 'Playtika' },
+  { slug: 'innplay',          name: 'Innplay Labs' },
+  // ── Semiconductors / Deep tech ──
+  { slug: 'ceva',             name: 'CEVA' },
 ];
 
 async function fetchAshby(): Promise<any[]> {
@@ -331,8 +360,51 @@ async function fetchAshby(): Promise<any[]> {
           is_active: true,
         });
       }
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 200));
     } catch (e) { console.warn(`ashby ${co.slug}:`, e); }
+  }
+  return jobs;
+}
+
+// ── ADZUNA API (optional — requires env vars) ─
+async function fetchAdzuna(): Promise<any[]> {
+  const appId  = Deno.env.get('ADZUNA_APP_ID');
+  const appKey = Deno.env.get('ADZUNA_APP_KEY');
+  if (!appId || !appKey) return [];
+
+  const jobs: any[] = [];
+  const seen = new Set<string>();
+  const queries = ['software developer', 'software engineer', 'backend developer', 'frontend developer', 'fullstack developer', 'devops', 'data engineer'];
+
+  for (const q of queries) {
+    try {
+      const url = `https://api.adzuna.com/v1/api/jobs/il/search/1?app_id=${appId}&app_key=${appKey}&results_per_page=50&what=${encodeURIComponent(q)}&content-type=application/json`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      for (const j of (data.results || [])) {
+        const id = String(j.id);
+        if (seen.has(id)) continue;
+        seen.add(id);
+        const loc = j.location?.display_name || 'Israel';
+        jobs.push({
+          title: clean(j.title || ''),
+          company_name: j.company?.display_name || 'Unknown',
+          location: loc,
+          url: j.redirect_url || '',
+          description: clean(j.description || ''),
+          skills: skills((j.title || '') + ' ' + (j.description || '')),
+          remote_type: remote((j.title || '') + ' ' + (j.description || '') + ' ' + loc),
+          experience_level: level(j.title || ''),
+          job_type: j.contract_time === 'part_time' ? 'parttime' : 'fulltime',
+          date_posted: j.created || new Date().toISOString(),
+          source: 'adzuna',
+          source_id: id,
+          is_active: true,
+        });
+      }
+      await new Promise(r => setTimeout(r, 400));
+    } catch (e) { console.warn('adzuna error:', e); }
   }
   return jobs;
 }
@@ -344,12 +416,13 @@ async function runScan() {
     .insert({ provider: 'all', status: 'running' })
     .select().single();
 
-  const [drushim, linkedin, greenhouse, lever, ashby] = await Promise.allSettled([
+  const [drushim, linkedin, greenhouse, lever, ashby, adzuna] = await Promise.allSettled([
     fetchDrushim(),
     fetchLinkedIn(),
     fetchGreenhouse(),
     fetchLever(),
     fetchAshby(),
+    fetchAdzuna(),
   ]);
 
   const bySource: Record<string, number> = {
@@ -358,6 +431,7 @@ async function runScan() {
     greenhouse: greenhouse.status === 'fulfilled' ? greenhouse.value.length : 0,
     lever:      lever.status      === 'fulfilled' ? lever.value.length      : 0,
     ashby:      ashby.status      === 'fulfilled' ? ashby.value.length      : 0,
+    adzuna:     adzuna.status     === 'fulfilled' ? adzuna.value.length     : 0,
   };
 
   const all = [
@@ -366,6 +440,7 @@ async function runScan() {
     ...(greenhouse.status === 'fulfilled' ? greenhouse.value : []),
     ...(lever.status      === 'fulfilled' ? lever.value      : []),
     ...(ashby.status      === 'fulfilled' ? ashby.value      : []),
+    ...(adzuna.status     === 'fulfilled' ? adzuna.value     : []),
   ].filter(j => j.title && j.url);
 
   let inserted = 0;
